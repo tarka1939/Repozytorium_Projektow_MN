@@ -1,0 +1,58 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>6b6424a2-02f0-42fd-a043-3b2a9b95eeb2</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>MN_Proj_3.1.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>MN_Proj_3</Name>
+    <RootNamespace>MN_Proj_3</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="MN_Proj_3.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="100.csv" />
+    <Content Include="chelm.txt" />
+    <Content Include="genoa_rapallo.txt" />
+    <Content Include="GlebiaChallengera.csv" />
+    <Content Include="Hel_yeah.csv" />
+    <Content Include="in_mountain.data" />
+    <Content Include="MN_Proj_3.1.py" />
+    <Content Include="MountEverest.csv" />
+    <Content Include="Obiadek.csv" />
+    <Content Include="ostrowa.txt" />
+    <Content Include="profil_etapu.csv" />
+    <Content Include="przyk3.txt" />
+    <Content Include="Redlujjj.csv" />
+    <Content Include="requirements.txt" />
+    <Content Include="rozne_wniesienia.txt" />
+    <Content Include="SpacerniakGdansk.csv" />
+    <Content Include="stale.txt" />
+    <Content Include="tczew_starogard.txt" />
+    <Content Include="ulm_lugano.txt" />
+    <Content Include="Unsyncable_ride.csv" />
+    <Content Include="WielkiKanionKolorado.csv" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>
