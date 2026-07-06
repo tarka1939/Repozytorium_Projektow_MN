@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Visual Studio
+.vs/
+*.pyproj.user
+*.suo
+*.user
+
+# Redundant project archives (duplicates of tracked source)
+*.zip
+
+# OS
+Thumbs.db
+.DS_Store
