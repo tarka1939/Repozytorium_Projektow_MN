@@ -26,6 +26,7 @@
     <Compile Include="MACD_lib.py" />
     <Compile Include="MN_Proj_1.py" />
     <Compile Include="simulation.py" />
+    <Compile Include="test_macd.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="data.csv" />

@@ -1,43 +1,29 @@
-import pandas as pd
-def MACD(data, m, n, s):
-    i=0
-    diff = [] 
-    signal = []
-    for d in data['Close']:
-        diff.append([MACD_diff(data['Close'], m, n, i),data.index[i]])
-        #diff with no timestamp
-        diff_temp = []
-        for j in range(len(diff)):
-            diff_temp.append(diff[j][0])
-        signal.append([MACD_signal(diff_temp, s, i),data.index[i]])
-        i+=1
-    #combine diff and signal into one array
-    macd_temp = []
-    for i in range(len(diff)):
-        macd_temp.append([diff[i][0],signal[i][0]])
-    #find when diff crosses signal and mark it in array as -1 or 1 for buy or sell
-    macd = []
-    for i in range(1, len(macd_temp)):
-        if macd_temp[i][0] > macd_temp[i][1] and macd_temp[i-1][0] <= macd_temp[i-1][1]:
-            macd.append([1,data.index[i],macd_temp[i][0]])
-        elif macd_temp[i][0] < macd_temp[i][1] and macd_temp[i-1][0] >= macd_temp[i - 1][1]:
-            macd.append([-1,data.index[i],macd_temp[i][0]])
-        else:
-            macd.append([0,data.index[i],macd_temp[i][0]])
-    return macd, diff, signal
-def MACD_signal(diff, s, i):
-    return EMA_n(s, diff, i,0)
-    
-def MACD_diff(data, m, n, i):
-    return EMA_n(m, data, i,0) - EMA_n(n, data, i,0)
-
-def EMA_n(n, data, i, r):
-    #max recursion depth = 50
-    if r == 50:
-        return data[i]
-    if i==0:
-        return data[0]
+def EMA(values, n):
+    #exponential moving average with smoothing factor 2/(n+1), started from the first value
+    #ema[i] = a*x[i] + (1-a)*ema[i-1], one pass over the data
+    #(same result as pandas Series.ewm(span=n, adjust=False).mean())
     a = 2 / (n + 1)
-    x = data[i]
-    value = a * x + (1 - a) * EMA_n(n, data, i - 1, r+1)
-    return value
+    ema = [values[0]]
+    for x in values[1:]:
+        ema.append(a * x + (1 - a) * ema[-1])
+    return ema
+
+def MACD(data, m, n, s):
+    close = list(data['Close'])
+    dates = data.index
+    #MACD line = EMA_m - EMA_n of the close price, signal line = EMA_s of the MACD line
+    diff_values = [fast - slow for fast, slow in zip(EMA(close, m), EMA(close, n))]
+    signal_values = EMA(diff_values, s)
+    diff = [[diff_values[i], dates[i]] for i in range(len(close))]
+    signal = [[signal_values[i], dates[i]] for i in range(len(close))]
+    #macd[i] describes day i: 1 if the MACD line crossed above the signal line at that day's close (buy),
+    #-1 if it crossed below (sell), 0 otherwise. It only uses closes up to day i.
+    macd = [[0, dates[0], diff_values[0]]]
+    for i in range(1, len(close)):
+        if diff_values[i] > signal_values[i] and diff_values[i-1] <= signal_values[i-1]:
+            macd.append([1, dates[i], diff_values[i]])
+        elif diff_values[i] < signal_values[i] and diff_values[i-1] >= signal_values[i-1]:
+            macd.append([-1, dates[i], diff_values[i]])
+        else:
+            macd.append([0, dates[i], diff_values[i]])
+    return macd, diff, signal

@@ -1,5 +1,4 @@
 #Source: https://medium.com/@armand_aguilar/macd-with-python-9ddf2548dfb5 only for demonstration and debug purposes
-import yfinance as yf
 import matplotlib.pyplot as plt
 import ta
 import pandas as pd

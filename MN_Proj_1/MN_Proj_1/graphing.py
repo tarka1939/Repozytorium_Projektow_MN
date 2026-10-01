@@ -1,11 +1,9 @@
 import mplfinance as mpf
 import matplotlib.pyplot as plt
-import pandas as pd
-import MACD_implementation
 #graph csv data on a plot as Candlestick chart type graph
 def graph_data(data):
     #plotting the data
-    mpf.plot(data, type='candle', style='charles', volume=True, title='Microsoft Stocks', ylabel='Price', ylabel_lower='Volume')
+    mpf.plot(data, type='candle', style='charles', volume=True, title='Microsoft Stocks', ylabel='Price', ylabel_lower='Volume', warn_too_much_data=len(data) + 1)
     return
 
 
@@ -22,7 +20,7 @@ def plot_MACD(macd, diff, signal, data):
     bullish_run = []
     bearish_run = []
 
-    for i in range(1, len(macd)):
+    for i in range(len(macd)):
         if macd[i][0] == 1:
             bullish_run.append([macd[i][1], macd[i][2]])
         elif macd[i][0] == -1:
@@ -42,19 +40,15 @@ def plot_MACD(macd, diff, signal, data):
     plt.show()
     return
 
-def plot_simulation(simulation):
-    #plot the simulation
-    # Extract x and y values from simulation
-    x_values = [i for i in range(len(simulation))]
-    y_values_capital = [item[0] for item in simulation]
-    y_values_stock = [item[1] for item in simulation]
+def plot_simulation(dates, simulation, benchmark=None):
+    #plot the total value of the simulated portfolio, optionally next to a buy-and-hold benchmark
     y_values_total = [item[2] for item in simulation]
-    #plt.plot(x_values, y_values_capital, label='Capital')
-    #plt.plot(x_values, y_values_stock, label='Stock Value')
-    plt.plot(x_values, y_values_total, label='Total Value')
+    plt.plot(dates, y_values_total, label='MACD strategy')
+    if benchmark is not None:
+        plt.plot(dates, benchmark, label='Buy and hold')
     plt.title('Simulation')
-    plt.xlabel('Days')
-    plt.ylabel('Value')
+    plt.xlabel('Date')
+    plt.ylabel('Total value')
     plt.legend()
     plt.show()
     return
