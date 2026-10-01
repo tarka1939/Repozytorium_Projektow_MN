@@ -1,165 +1,95 @@
-﻿import pandas as pd
+#Interpolation of elevation profiles: Lagrange polynomial vs natural cubic spline,
+#on evenly spaced vs Chebyshev nodes.
+#usage: python MN_Proj_3.py               (show the plots)
+#       python MN_Proj_3.py --save DIR    (write the plots to DIR as PNG files instead)
+import glob
+import os
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import interpolation as ip
 
+ROUTE = "Hel_yeah.csv"       #route used for the example plots
+NODES = [10, 25, 50]         #numbers of nodes in the example plots
+TABLE_NODES = [5, 10, 15, 25, 50]
+NODE_TYPES = {"evenly spaced": ip.get_evenly_spaced_nodes, "Chebyshev": ip.get_chebyshev_nodes}
+METHODS = {"Lagrange": ip.lagrange_interpolation, "cubic spline": ip.cubic_spline_interpolation}
+SHORT = {"evenly spaced": "even", "Chebyshev": "Cheb", "Lagrange": "Lagrange", "cubic spline": "spline"}
+MIN_SAMPLES = 100            #shorter files (profil_etapu.csv) are toy examples, left out of the statistics
 
+save_dir = sys.argv[sys.argv.index("--save") + 1] if "--save" in sys.argv else None
+if save_dir:
+    os.makedirs(save_dir, exist_ok=True)
 
-"""Funkcja do interpolacji Lagrange'a."""
-def lagrange(x, y):
-    x_intrp = np.zeros(1000)
-    y_intrp = np.zeros(1000)
+def show(name):
+    if save_dir:
+        plt.savefig(os.path.join(save_dir, name + ".png"), dpi=100)
+        plt.close()
+    else:
+        plt.show()
 
-    def interpolation(x_val):
-        n = len(x)
-        result = 0.0
-        for i in range(n):
-            term = y[i]
-            for j in range(n):
-                if i != j:
-                    term *= (x_val - x[j]) / (x[i] - x[j])
-            result += term
-        return result
-    return np.vectorize(interpolation)
-
-def get_evenly_spaced_nodes(x, y, nodes):
-    x_nodes = np.zeros(nodes)
-    y_nodes = np.zeros(nodes)
-    x_nodes = [x[i] for i in range(0, len(x), len(x)//nodes)]
-    y_nodes = [y[i] for i in range(0, len(y), len(y)//nodes)]
-    
-    return x_nodes, y_nodes
-
-def get_czybyszew_nodes(x,y,n):
-    """Funkcja do generowania węzłów Czebyszewa."""
-    nodes_x = np.zeros(n)
-    nodes_y = np.zeros(n)
-    for i in range(n):
-        # Oblicz współrzędne węzłów Czebyszewa
-        angle = (2 * i + 1) * np.pi / (2 * n)
-        nodes_x[i] = (x.max() - x.min()) / 2 * np.cos(angle) + (x.max() + x.min()) / 2
-        nodes_y[i] = (y.max() - y.min()) / 2 * np.sin(angle) + (y.max() + y.min()) / 2
-    return nodes_x, nodes_y
-
-def cubic_spline(x, y):
-    """Implementacja funkcji do interpolacji funkcją sklejaną trzeciego stopnia."""
-    n = len(x)
-    h = np.diff(x)
-    alpha = np.zeros(n)
-    for i in range(1, n-1):
-        alpha[i] = (3/h[i]) * (y[i+1] - y[i]) - (3/h[i-1]) * (y[i] - y[i-1])
-
-    l = np.ones(n)
-    mu = np.zeros(n)
-    z = np.zeros(n)
-    for i in range(1, n-1):
-        l[i] = 2 * (x[i+1] - x[i-1]) - h[i-1] * mu[i-1]
-        mu[i] = h[i] / l[i]
-        z[i] = (alpha[i] - h[i-1] * z[i-1]) / l[i]
-
-    b = np.zeros(n-1)
-    c = np.zeros(n)
-    d = np.zeros(n-1)
-
-    for j in range(n-2, -1, -1):
-        c[j] = z[j] - mu[j] * c[j+1]
-        b[j] = (y[j+1] - y[j]) / h[j] - h[j] * (c[j+1] + 2*c[j]) / 3
-        d[j] = (c[j+1] - c[j]) / (3*h[j])
-
-    def spline_func(x_val):
-        # Find the right interval
-        i = np.searchsorted(x, x_val) - 1
-        if i < 0:
-            i = 0
-        elif i >= n-1:
-            i = n-2
-        dx = x_val - x[i]
-        return y[i] + b[i]*dx + c[i]*dx**2 + d[i]*dx**3
-
-    return np.vectorize(spline_func)
-
-def plot(x, y, x_dense_original, y_lagrange, x_dense_spline, y_spline,n):
-    """Funkcja do rysowania wykresu."""
-    ymin = min(y)*1.1
-    ymax = max(y)*1.1
+def plot(x, y, x_nodes, y_nodes, x_dense, y_lagrange, y_spline, title, name):
+    #the y axis is limited to the data range, so a diverging polynomial leaves the chart instead of flattening it
+    ymin = min(y) - 0.1 * abs(min(y))
+    ymax = max(y) + 0.1 * abs(max(y))
     plt.figure(figsize=(10, 6))
     plt.ylim([ymin, ymax])
-    plt.plot(x, y, 'o', label='Dane węzłowe')
-    plt.plot(x_dense_original, y_lagrange, label='Interpolacja Lagrange\'a')
-    plt.plot(x_dense_spline, y_spline,label='Interpolacja funkcją sklejaną trzeciego stopnia', linestyle='--')
-    plt.xlabel('Odległość (km)')
-    plt.ylabel('Wysokość (m)')
-    plt.title('Porównanie interpolacji profilu wysokościowego dla ' + str(n) + ' węzłów')
+    plt.plot(x, y, label='Elevation profile', linestyle="-")
+    plt.plot(x_nodes, y_nodes, 'x', label='Nodes')
+    plt.plot(x_dense, y_lagrange, label='Lagrange polynomial')
+    plt.plot(x_dense, y_spline, label='Natural cubic spline', linestyle='--')
+    plt.xlabel('Distance (m)')
+    plt.ylabel('Elevation (m)')
+    plt.title(title)
     plt.legend()
     plt.grid(True)
-    plt.show()
-    #read input to close
-    #input("Naciśnij Enter, aby zamknąć program...")
+    show(name)
 
+#example plots for one route
+x, y = ip.load_profile(ROUTE)
+x_dense = np.linspace(x.min(), x.max(), 1000)
+for n in NODES:
+    for node_type, get_nodes in NODE_TYPES.items():
+        x_nodes, y_nodes = get_nodes(x, y, n)
+        y_lagrange = ip.lagrange_interpolation(x_nodes, y_nodes, x_dense)
+        y_spline = ip.cubic_spline_interpolation(x_nodes, y_nodes, x_dense)
+        plot(x, y, x_nodes, y_nodes, x_dense, y_lagrange, y_spline,
+             f"{ROUTE}: {n} {node_type} nodes", f"{os.path.splitext(ROUTE)[0]}_{n}_{node_type.split()[0].lower()}")
 
+#errors on every route: each interpolant is compared with the profile at all of its samples
+routes = [p for p in sorted(glob.glob("*.csv") + glob.glob("*.txt") + glob.glob("*.data")) if p != "requirements.txt"]
+combinations = [(node_type, method) for node_type in NODE_TYPES for method in METHODS]
+relative = {(n, c): [] for n in TABLE_NODES for c in combinations}
+print("RMSE [m] with 25 nodes (largest absolute error in brackets)")
+print(f"{'route':26s} {'length':>8s} {'range':>7s}" + "".join(f"{SHORT[nt] + '/' + SHORT[m]:>24s}" for nt, m in combinations))
+for route in routes:
+    x, y = ip.load_profile(route)
+    if len(x) < MIN_SAMPLES:
+        continue
+    elevation_range = y.max() - y.min()
+    row = f"{route:26s} {x.max() / 1000:6.1f}km {elevation_range:6.0f}m"
+    for n in TABLE_NODES:
+        for node_type, method in combinations:
+            x_nodes, y_nodes = NODE_TYPES[node_type](x, y, n)
+            rmse, max_error = ip.errors(y, METHODS[method](x_nodes, y_nodes, x))
+            relative[(n, (node_type, method))].append(rmse / elevation_range)
+            if n == 25:
+                row += f"{rmse:>12.3g} ({max_error:>8.3g})"
+    print(row)
 
-# Wczytaj dane z pliku CSV
-#data = pd.read_csv("Obiadek.csv")
-#data = pd.read_csv("profil_etapu.csv")
-data = pd.read_csv("Hel_yeah.csv")
-x = data['distance'].values
-y = data['elevation'].values
+route_count = len(relative[(TABLE_NODES[0], combinations[0])])
+print(f"\nMedian over {route_count} routes of RMSE / elevation range of the route")
+print(f"{'nodes':>5s}" + "".join(f"{SHORT[nt] + '/' + SHORT[m]:>16s}" for nt, m in combinations))
+for n in TABLE_NODES:
+    print(f"{n:5d}" + "".join(f"{np.median(relative[(n, c)]):16.3g}" for c in combinations))
 
-# #dla wszystkich węzłów:
-# # Przeskaluj dziedzinę do [0, 1] dla Lagrange'a
-# x_scaled = (x - x.min()) / (x.max() - x.min())
-# # Interpolacja Lagrange’a
-# x_dense = np.linspace(x_scaled.min(), x_scaled.max(), 500)
-# y_lagrange = lagrange(x_scaled, y)(x_dense)
-# # Cofnij skalowanie
-# x_dense_original = x_dense * (x.max() - x.min()) + x.min()
-# # Interpolacja funkcją sklejaną trzeciego stopnia
-# spline = cubic_spline(x, y)
-# x_dense_spline = np.linspace(x.min(), x.max(), 500)
-# y_spline = spline(x_dense_spline)
-# n = len(x)
-# plot(x, y, x_dense_original, y_lagrange, x_dense_spline, y_spline,n)
-
-
-#dla 10 węzłów:
-n = 10
-x_even,y_even = get_evenly_spaced_nodes(x, y, n)
-x_czybyszew, y_czybyszew = get_czybyszew_nodes(x, y, n)
-# Przeskaluj dziedzinę do [0, 1] dla Lagrange'a
-x_scaled = (x_even - x_even.min()) / (x_even.max() - x_even.min())
-x_scaled_czybyszew = (x_czybyszew - x_czybyszew.min()) / (x_czybyszew.max() - x_czybyszew.min())
-
-# Interpolacja Lagrange’a
-x_dense = np.linspace(x_scaled.min(), x_scaled.max(), 500)
-x_dense_czybyszew = np.linspace(x_scaled_czybyszew.min(), x_scaled_czybyszew.max(), 500)
-
-y_lagrange = lagrange(x_scaled, y_even)(x_dense)
-y_czybyszew_lagrange = lagrange(x_scaled_czybyszew, y_czybyszew)(x_dense)
-# Cofnij skalowanie
-x_dense_original = x_dense * (x_even.max() - x_even.min()) + x_even.min()
-x_czybyszew_original = x_dense * (x_czybyszew.max() - x_czybyszew.min()) + x_czybyszew.min()
-
-spline = cubic_spline(x_even, y_even)
-spline_czybyszew = cubic_spline(x_czybyszew, y_czybyszew)
-x_dense_spline = np.linspace(x.min(), x.max(), n)
-x_dense_spline_czybyszew = np.linspace(x_czybyszew.min(), x_czybyszew.max(), n)
-y_spline = spline(x_dense_spline)
-y_spline_czybyszew = spline_czybyszew(x_dense_spline_czybyszew)
-# Rysowanie wykresu dla 10 węzłów
-plot(x, y, x_dense_original, y_lagrange, x_dense_spline, y_spline,n)
-plot(x, y, x_czybyszew_original, y_czybyszew_lagrange,x_dense_spline, y_spline_czybyszew, n)
-
-
-
-#dla 30 węzłów:
-n=30
-x_dense = np.linspace(x_scaled.min(), x_scaled.max(), n)
-y_lagrange = lagrange(x_scaled, y)(x_dense)
-# Cofnij skalowanie dla funkcji sklejaną
-x_dense_original = x_dense * (x.max() - x.min()) + x.min()
-x_dense_spline = np.linspace(x.min(), x.max(), n)
-y_spline = spline(x_dense_spline)
-plot(x, y, x_dense_original, y_lagrange, x_dense_spline, y_spline,n)
-
-
-
-
+plt.figure(figsize=(10, 6))
+for c in combinations:
+    plt.plot(TABLE_NODES, [np.median(relative[(n, c)]) for n in TABLE_NODES], marker='o', label=f"{c[1]}, {c[0]} nodes")
+plt.yscale('log')
+plt.xlabel('Number of nodes')
+plt.ylabel('Median RMSE / elevation range')
+plt.title(f'Interpolation error over {route_count} elevation profiles')
+plt.legend()
+plt.grid(True, which='both')
+show("error_vs_nodes")

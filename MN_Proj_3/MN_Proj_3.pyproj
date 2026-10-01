@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>6b6424a2-02f0-42fd-a043-3b2a9b95eeb2</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>MN_Proj_3.1.py</StartupFile>
+    <StartupFile>MN_Proj_3.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,7 +21,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="interpolation.py" />
     <Compile Include="MN_Proj_3.py" />
+    <Compile Include="test_interpolation.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="100.csv" />
@@ -30,7 +32,6 @@
     <Content Include="GlebiaChallengera.csv" />
     <Content Include="Hel_yeah.csv" />
     <Content Include="in_mountain.data" />
-    <Content Include="MN_Proj_3.1.py" />
     <Content Include="MountEverest.csv" />
     <Content Include="Obiadek.csv" />
     <Content Include="ostrowa.txt" />
