@@ -1,34 +1,24 @@
-﻿import Equation
 import numpy as np
-#LDU factorisation without numpy
-def get_L (A,n):
-    k = n
-    L = np.zeros((k, k))
-    for i in range(k):
-        for j in range(i + 1):
-            if i == j:
-                L[i, j] = 0
-            else:
-                L[i, j] = A[i, j]
-    
-    return L
-def get_U(A,n):
-    k = n
-    U = np.zeros((k, k))
-    for i in range(k):
-        for j in range(k):
-            if i < j:
-                U[i, j] = A[i, j]
-            else:
-                U[i, j] = 0
-    return U
-def get_D(A,n):
-    k = n
-    D = np.zeros((k, k))
-    for i in range(k):
-        for j in range(k):
-            if i == j:
-                D[i, j] = A[i, j]
-            else:
-                D[i, j] = 0
-    return D
+#A = L + D + U split used by the iterative methods
+def get_L(A):
+    #strictly lower triangular part
+    return np.tril(A, -1)
+
+def get_U(A):
+    #strictly upper triangular part
+    return np.triu(A, 1)
+
+def get_D(A):
+    return np.diag(np.diag(A))
+
+#an iterative method x_{k+1} = M x_k + w converges for every starting vector
+#if and only if the spectral radius of M is below 1
+def spectral_radius_jacobi(A):
+    #M = -D^-1 (L + U)
+    M = -(get_L(A) + get_U(A)) / np.diag(A)[:, None]
+    return np.abs(np.linalg.eigvals(M)).max()
+
+def spectral_radius_gauss_seidel(A):
+    #M = -(D + L)^-1 U
+    M = -np.linalg.solve(get_D(A) + get_L(A), get_U(A))
+    return np.abs(np.linalg.eigvals(M)).max()

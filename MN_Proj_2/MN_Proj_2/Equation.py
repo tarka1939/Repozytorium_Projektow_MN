@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 
 class BandMatrixSystem:
     def __init__(self):
@@ -8,27 +8,19 @@ class BandMatrixSystem:
         self.A3 = 0
         self.Systems = []
 
-        
-    def CreateFullMatrix(self):
-        A = np.zeros((self.N, self.N))
 
-        for i in range(self.N):
-            A[i, i] = self.A1
-            if i - 1 >= 0:
-                A[i, i - 1] = self.A2
-            if i + 1 < self.N:
-                A[i, i + 1] = self.A2
-            if i - 2 >= 0:
-                A[i, i - 2] = self.A3
-            if i + 2 < self.N:
-                A[i, i + 2] = self.A3
+    def CreateFullMatrix(self):
+        #pentadiagonal matrix: a1 on the main diagonal, a2 on the first and a3 on the second off-diagonals
+        A = np.diag(np.full(self.N, float(self.A1)))
+        A += np.diag(np.full(self.N - 1, float(self.A2)), 1) + np.diag(np.full(self.N - 1, float(self.A2)), -1)
+        A += np.diag(np.full(self.N - 2, float(self.A3)), 2) + np.diag(np.full(self.N - 2, float(self.A3)), -2)
         return A
 
     def CreateRightHandSideVector(self):
-        return np.array([np.sin(9 * n) for n in range(self.N)])
+        return np.sin(9 * np.arange(self.N))
 
     def CreateNewSystem(self, N, a1, a2, a3):
-        
+
         self.N = N
         self.A1 = a1
         self.A2 = a2
@@ -51,4 +43,3 @@ class BandMatrixSystem:
             print("x:")
             print(x)
             print()
-

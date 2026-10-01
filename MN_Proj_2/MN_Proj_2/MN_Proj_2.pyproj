@@ -21,13 +21,15 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Band_Solver.py" />
     <Compile Include="Equation.py" />
     <Compile Include="Decomposition.py" />
-    <Compile Include="Gauss_Seidl.py" />
+    <Compile Include="Gauss_Seidel.py" />
     <Compile Include="Graphing.py" />
-    <Compile Include="Jacobo.py" />
+    <Compile Include="Jacobi.py" />
     <Compile Include="LU_Factor.py" />
     <Compile Include="MN_Proj_2.py" />
+    <Compile Include="test_solvers.py" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="requirements.txt" />
