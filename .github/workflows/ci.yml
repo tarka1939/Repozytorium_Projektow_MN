@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: "Project 1: MACD backtest"
+            dir: MN_Proj_1/MN_Proj_1
+            tests: test_macd.py
+            main: MN_Proj_1.py
+          - project: "Project 2: linear solvers"
+            dir: MN_Proj_2/MN_Proj_2
+            tests: test_solvers.py
+            main: MN_Proj_2.py
+          - project: "Project 3: interpolation"
+            dir: MN_Proj_3
+            tests: test_interpolation.py
+            main: MN_Proj_3.py
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    env:
+      MPLBACKEND: Agg  # plots are rendered off-screen, plt.show() returns immediately
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Tests
+        run: python ${{ matrix.tests }}
+      - name: Run the project end to end
+        run: python ${{ matrix.main }}
