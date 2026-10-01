@@ -12,6 +12,7 @@ TOLERANCE = 1e-9 #stop when ||Ax - b|| < TOLERANCE
 MAX_ITER = 1000
 N = 1279
 SIZES = [100, 500, 1000, 2000, 3000]
+REPEATS = 3 #every solve in the size sweep is timed this many times and the fastest run is kept
 
 def run_iterative(name, solver, equation, index=0):
     start = time.perf_counter()
@@ -63,13 +64,16 @@ for size in SIZES:
 methods = {"Jacobi": jc.SolveJacobi, "Gauss-Seidel": gs.SolveGauss, "LU (dense)": lu.SolveLU,
            "LU (banded)": band.SolveBand, "numpy.linalg.solve": numpy_solve}
 times_by_method = {name: [] for name in methods}
-print("Time [s] for system A with N unknowns")
+print(f"Time [s] for system A with N unknowns (best of {REPEATS} runs)")
 print(f"  {'N':>6s}" + "".join(f"{name:>20s}" for name in methods))
 for j, size in enumerate(SIZES):
     for name, solver in methods.items():
-        start = time.perf_counter()
-        solver(sweep, TOLERANCE, MAX_ITER, j)
-        times_by_method[name].append(time.perf_counter() - start)
+        best = float("inf")
+        for repeat in range(REPEATS):
+            start = time.perf_counter()
+            solver(sweep, TOLERANCE, MAX_ITER, j)
+            best = min(best, time.perf_counter() - start)
+        times_by_method[name].append(best)
     print(f"  {size:6d}" + "".join(f"{times_by_method[name][-1]:20.4f}" for name in methods))
 
 gp.PlotTimeAndNumberOfUnknowns(SIZES, times_by_method)
