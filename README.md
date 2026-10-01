@@ -1,67 +1,138 @@
-# Repozytorium Projektów MN (Numerical Methods Projects)
+# Numerical Methods in Python
 
-This repository collects three academic projects built for a **Numerical Methods** ("Metody Numeryczne") course. Each project implements a classical numerical algorithm from scratch (rather than relying on a black-box library call) and applies it to a realistic dataset, then benchmarks or visualizes the results. Together they demonstrate core computational techniques that show up repeatedly in quantitative finance, engineering simulation, and geospatial/data analytics — domains where correctness, performance, and numerical stability have direct business impact.
+[![CI](https://github.com/tarka1939/Repozytorium_Projektow_MN/actions/workflows/ci.yml/badge.svg)](https://github.com/tarka1939/Repozytorium_Projektow_MN/actions/workflows/ci.yml)
 
-## Repository Structure
+Three projects from the *Metody Numeryczne* (Numerical Methods) course. Each one implements the method by hand (exponential moving averages, Jacobi, Gauss-Seidel, LU with pivoting, banded elimination, Lagrange and cubic spline interpolation), checks it against NumPy/pandas in a test file, and applies it to real data. CI runs every test file and each project end to end.
 
-| Project | Folder | Topic |
+## Results
+
+| Project | Question | Answer from the code in this repository |
 |---|---|---|
-| Project 1 | [MN_Proj_1/](MN_Proj_1) | Time-series signal processing & trading strategy backtesting (MACD) |
-| Project 2 | [MN_Proj_2/](MN_Proj_2) | Iterative & direct solvers for large linear systems (Jacobi, Gauss-Seidel, LU) |
-| Project 3 | [MN_Proj_3/](MN_Proj_3) | Function interpolation (Lagrange, cubic splines, Chebyshev nodes) on terrain elevation data |
+| [MACD backtest](#project-1--macd-trading-backtest) | Does trading MACD crossovers beat buying and holding Microsoft stock, Jan 2021 to Mar 2025? | **No.** $10,000 becomes $11,729 with MACD and $18,189 with buy and hold. The graded version reported about $44,000 because of a look-ahead bug, described below |
+| [Linear solvers](#project-2--linear-system-solvers) | Jacobi, Gauss-Seidel and LU on a pentadiagonal system: which is fastest, and when do the iterative methods fail? | Banded elimination solves N = 3000 in 0.04 s; dense LU takes 1.2 s. With a1 = 3 both iterative methods diverge, as the spectral radius predicts (1.33 and 1.93) |
+| [Interpolation](#project-3--interpolation-of-elevation-profiles) | Lagrange or cubic spline, evenly spaced or Chebyshev nodes, on 18 real elevation profiles? | Lagrange on evenly spaced nodes diverges (Runge's phenomenon). Chebyshev nodes fix that. For splines, evenly spaced nodes are as good or better |
 
----
+## Project 1 — MACD trading backtest
 
-## Project 1 — MACD Trading Signal Simulation
+[`MN_Proj_1/MN_Proj_1`](MN_Proj_1/MN_Proj_1)
 
-**Location:** [MN_Proj_1/MN_Proj_1](MN_Proj_1/MN_Proj_1)
+The program computes the MACD indicator (EMA12 − EMA26, signal line = EMA9 of that) from daily Microsoft prices in [`data.csv`](MN_Proj_1/MN_Proj_1/data.csv). It then simulates a simple strategy over 2021-01-04 to 2025-03-21 (1,059 trading days):
 
-Implements the **Moving Average Convergence/Divergence (MACD)** technical indicator from first principles (recursive exponential moving average, [MACD_implementation.py](MN_Proj_1/MN_Proj_1/MACD_implementation.py)), then uses it to drive a simple buy/sell trading simulation ([simulation.py](MN_Proj_1/MN_Proj_1/simulation.py)) over historical price data ([data.csv](MN_Proj_1/MN_Proj_1/data.csv)), with results plotted via [graphing.py](MN_Proj_1/MN_Proj_1/graphing.py).
+- when the MACD line crosses above the signal line, spend 80% of the cash;
+- when it crosses below, sell 80% of the shares.
 
-**Business value:** This mirrors the core building block of algorithmic and quantitative trading systems — turning noisy time-series data into actionable buy/sell signals and measuring strategy profitability (win/loss counts, capital growth) before risking real capital. The same pattern (signal extraction → backtest → P&L evaluation) generalizes to any organization building automated trading, risk-signal, or anomaly-detection pipelines on streaming/financial data.
+A crossover is only known at the close, so the order is filled at the next day's open.
 
-## Project 2 — Linear System Solvers & Performance Benchmarking
+| From $10,000 | Final value |
+|---|---|
+| MACD strategy, no fees | **$11,729** (93 transactions) |
+| MACD strategy, 0.1% fee per transaction | $11,024 |
+| MACD strategy, 0.25% fee per transaction | $10,044 |
+| Buy and hold (all in at the first open) | **$18,189** |
+| *Graded version, with the look-ahead bug* | *$44,179* |
 
-**Location:** [MN_Proj_2/MN_Proj_2](MN_Proj_2/MN_Proj_2)
+**The look-ahead bug in the graded version.** The list of crossovers was shifted by one row against the price table. As a result, a signal known only at the close of day *t+1* was filled at the open of day *t*, so the strategy bought and sold before the information existed. The fix changed the conclusion. The PDF report ([`Document.pdf`](MN_Proj_1/MN_Proj_1/Document.pdf), in Polish) was written from the old numbers and says MACD gives "very stable growth" of capital; that no longer holds.
 
-Generates large banded ("pięciodiagonalna") matrix systems ([Equation.py](MN_Proj_2/MN_Proj_2/Equation.py)) and solves them using three independently implemented methods:
-- **Jacobi iteration** ([Jacobo.py](MN_Proj_2/MN_Proj_2/Jacobo.py))
-- **Gauss-Seidel iteration** ([Gauss_Seidl.py](MN_Proj_2/MN_Proj_2/Gauss_Seidl.py))
-- **LU factorization** ([LU_Factor.py](MN_Proj_2/MN_Proj_2/LU_Factor.py))
+[`test_macd.py`](MN_Proj_1/MN_Proj_1/test_macd.py) checks that changing prices after day *k* leaves the portfolio value up to day *k* unchanged. The graded code fails this check; the current code passes it. Other changes:
 
-[MN_Proj_2.py](MN_Proj_2/MN_Proj_2/MN_Proj_2.py) benchmarks convergence speed, residual error, and wall-clock time across increasing problem sizes (up to ~4000 unknowns), plotting the results (including log-scale comparisons) via [Graphing.py](MN_Proj_2/MN_Proj_2/Graphing.py).
+- The EMA is now the exact one-pass recurrence, checked against `pandas.ewm(adjust=False)`. Before, it was a recursion cut off after 50 steps, which was off by up to 0.77 and took O(N²) time for the signal line.
+- The program prints the total portfolio value; before, it printed only the cash.
+- There's an optional transaction fee.
+- The random zoom-in plot works; before, it raised an exception.
 
-**Business value:** Solving large sparse/banded linear systems efficiently is foundational to engineering simulation (structural analysis, circuit simulation, fluid dynamics, PDE solvers), computer graphics, and large-scale optimization. This project quantifies the real-world trade-off between iterative methods (cheap per step, scale well, but may converge slowly or not at all) and direct methods (numerically robust, but costlier) — the same trade-off engineering and simulation teams must make when choosing solvers for production systems where compute cost and accuracy both matter.
+## Project 2 — Linear system solvers
 
-## Project 3 — Interpolation of Elevation Profiles
+[`MN_Proj_2/MN_Proj_2`](MN_Proj_2/MN_Proj_2)
 
-**Location:** [MN_Proj_3/](MN_Proj_3)
+The program solves *Ax = b* for a pentadiagonal *A*: *a1* on the diagonal and −1 on the two diagonals either side of it, with *b<sub>n</sub>* = sin(9n). All five methods are implemented by hand:
 
-Reads real-world elevation/distance profile data (multiple cycling/hiking route CSVs, e.g. [MountEverest.csv](MN_Proj_3/MountEverest.csv), [WielkiKanionKolorado.csv](MN_Proj_3/WielkiKanionKolorado.csv), [SpacerniakGdansk.csv](MN_Proj_3/SpacerniakGdansk.csv)) and reconstructs continuous elevation curves from a sparse set of sampled points using:
-- **Lagrange polynomial interpolation**
-- **Cubic spline interpolation**
-- **Chebyshev node sampling** (to reduce oscillation/error at the edges of the interpolation range — Runge's phenomenon)
+- Jacobi ([`Jacobi.py`](MN_Proj_2/MN_Proj_2/Jacobi.py))
+- Gauss-Seidel ([`Gauss_Seidel.py`](MN_Proj_2/MN_Proj_2/Gauss_Seidel.py))
+- dense LU with partial pivoting and blocked updates ([`LU_Factor.py`](MN_Proj_2/MN_Proj_2/LU_Factor.py))
+- banded Gaussian elimination with partial pivoting ([`Band_Solver.py`](MN_Proj_2/MN_Proj_2/Band_Solver.py))
+- `numpy.linalg.solve`, as the reference
 
-Implemented in [MN_Proj_3.py](MN_Proj_3/MN_Proj_3.py) / [MN_Proj_3.1.py](MN_Proj_3/MN_Proj_3.1.py), with results visualized as comparison plots ([Figure_1.png](MN_Proj_3/Figure_1.png)–[Figure_12.png](MN_Proj_3/Figure_12.png)).
+Both iterative methods start from *x* = 0 and stop when ‖*Ax* − *b*‖ < 10⁻⁹.
 
-**Business value:** Reconstructing smooth, accurate curves from sparse or expensive-to-collect measurements is a recurring problem in GIS/mapping (route and terrain modeling), sensor data reconstruction, and any product that needs to estimate values between known data points. The project's direct comparison of interpolation strategies (and the sampling-node choice that stabilizes them) illustrates how the right numerical technique can materially improve accuracy without needing more raw data — reducing data-collection cost while improving product quality.
+**System A (a1 = 13) and system B (a1 = 3), N = 1279:**
 
----
+| | Spectral radius of the iteration matrix | System A | System B |
+|---|---|---|---|
+| Jacobi | A: 0.31, B: 1.33 | 14 iterations | diverges (stopped after 113 iterations) |
+| Gauss-Seidel | A: 0.14, B: 1.93 | 11 iterations | diverges (stopped after 46 iterations) |
+| LU, dense or banded | — | residual 3·10⁻¹⁵ | residual 4·10⁻¹⁵ |
 
-## Tech Stack
+System B's matrix is symmetric but indefinite: its smallest eigenvalue is −1. For a symmetric matrix with a positive diagonal, Gauss-Seidel converges only if the matrix is positive definite, so its failure here is expected rather than a bug. Both iterative methods now detect divergence and stop. The graded version ran 1000 iterations until the residual overflowed.
 
-All projects are written in **Python** (Visual Studio Python project files, `.pyproj`/`.sln`), using:
-- `numpy` / `pandas` for numerical and tabular data handling
-- `matplotlib` (and `mplfinance`) for visualization
-- `yfinance` / `ta` for market data and technical indicators (Project 1)
-- `scipy` / `sympy` (Project 2, for supporting numerical/symbolic computation)
+**Time vs. number of unknowns** (system A, best of 3 runs on a 4-core cloud VM):
 
-Each project folder contains its own `requirements.txt` for dependency installation:
+| N | Jacobi | Gauss-Seidel | LU (dense) | LU (banded) | `numpy.linalg.solve` |
+|---|---|---|---|---|---|
+| 1000 | 0.006 s | 0.03–0.05 s | 0.07–0.08 s | 0.01 s | 0.02 s |
+| 2000 | 0.025 s | 0.06 s | 0.36 s | 0.024 s | 0.11–0.14 s |
+| 3000 | 0.057 s | 0.13 s | 1.2 s | 0.037 s | 0.41–0.47 s |
+
+- Banded elimination does O(N) work, so it's fastest at large N. Dense LU is O(N³).
+- Gauss-Seidel needs fewer iterations than Jacobi, but each Gauss-Seidel sweep is a Python loop over the rows. Jacobi's single matrix-vector product is faster on the clock. That's a property of this implementation, not of the methods.
+
+Changes after grading:
+
+- Both methods now use the same stopping rule. Gauss-Seidel used to stop on the step size and return the previous iterate (true residual 2.1·10⁻⁹ against a 10⁻⁹ target).
+- LU uses its own forward and back substitution. It used to call `np.linalg.solve` twice.
+- The dense LU is blocked: N = 3000 now takes 1.2 s, down from 22 s.
+- New: the banded solver, divergence detection, and the spectral radii.
+
+## Project 3 — Interpolation of elevation profiles
+
+[`MN_Proj_3`](MN_Proj_3)
+
+The data are 18 route elevation profiles of 512 samples each: 0.6 to 328 km long, at elevations from −10.8 km (Challenger Deep) to 8.8 km (Mount Everest). From *n* nodes on each profile, the program builds:
+
+- a Lagrange polynomial;
+- a natural cubic spline.
+
+Both are built on evenly spaced nodes and on Chebyshev nodes. Each curve is compared with the profile at all 512 samples. The error is RMSE divided by the route's elevation range, so routes of different heights can be compared.
+
+**Median error over the 18 routes:**
+
+| Nodes | Lagrange, evenly spaced | Lagrange, Chebyshev | Spline, evenly spaced | Spline, Chebyshev |
+|---|---|---|---|---|
+| 5 | 0.15 | 0.13 | 0.17 | 0.14 |
+| 10 | 0.23 | 0.10 | **0.086** | 0.098 |
+| 15 | 1.7 | 0.066 | 0.063 | **0.060** |
+| 25 | 246 | 0.048 | **0.039** | 0.045 |
+| 50 | 390,000,000 | 0.026 | **0.021** | 0.024 |
+
+- Lagrange on evenly spaced nodes diverges as *n* grows; this is Runge's phenomenon. On Chebyshev nodes, Lagrange beats evenly spaced nodes on all 18 routes from 15 nodes up.
+- Splines don't need Chebyshev nodes. From 10 nodes up, the spline on evenly spaced nodes beats the spline on Chebyshev nodes on 13 to 16 of the 18 routes.
+
+![Error vs number of nodes](MN_Proj_3/figures/error_vs_nodes.png)
+
+| 25 evenly spaced nodes | 25 Chebyshev nodes |
+|---|---|
+| ![Evenly spaced](MN_Proj_3/figures/Hel_yeah_25_evenly.png) | ![Chebyshev](MN_Proj_3/figures/Hel_yeah_25_chebyshev.png) |
+
+Changes after grading:
+
+- The plots for Chebyshev nodes used to show the spline built on the evenly spaced nodes. They now show the spline through their own nodes.
+- New: the error table and its comparison across routes.
+- The distance axis now says metres; it said km.
+- A broken draft script was removed.
+
+## Running
+
+Each project has its own `requirements.txt`:
 
 ```bash
-pip install -r requirements.txt
+cd MN_Proj_1/MN_Proj_1 && pip install -r requirements.txt && python test_macd.py && python MN_Proj_1.py
+cd MN_Proj_2/MN_Proj_2 && pip install -r requirements.txt && python test_solvers.py && python MN_Proj_2.py
+cd MN_Proj_3 && pip install -r requirements.txt && python test_interpolation.py && python MN_Proj_3.py
 ```
 
-## Notes
+`python MN_Proj_3.py --save figures` regenerates the figures above. The Visual Studio solutions (`.sln` / `.pyproj`) still work.
 
-These are coursework/portfolio projects: algorithms are implemented manually to demonstrate understanding of the underlying numerical methods, rather than optimized production code. They are best read as worked demonstrations of how classical numerical analysis techniques translate into practical, business-relevant capabilities in finance, engineering, and data/geospatial analytics.
+## Limitations
+
+- **Project 1** uses one stock, one period and one parameter set (12/26/9). There's no out-of-sample test. A rising market favours buy and hold, and the 80% rule keeps part of the money in cash. Treat the result as one data point, not a verdict on MACD.
+- **Project 2:** timings depend on the machine. The solvers take the matrix as a dense N×N array. The banded solver reads only the five diagonals, but the system generator still allocates N² entries.
+- **Project 3** treats the 512-sample profile as the truth. Lagrange is evaluated with the direct formula, not the barycentric form. Chebyshev nodes don't include the end points, so both methods extrapolate slightly at the ends of the route.
